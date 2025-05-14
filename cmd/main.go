@@ -1,16 +1,16 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/redis/go-redis/v9"
 	"github.com/saifoelloh/ranger/internal/config"
 	handler "github.com/saifoelloh/ranger/internal/handler"
 	"github.com/saifoelloh/ranger/internal/middleware"
+	"github.com/saifoelloh/ranger/internal/redis"
 	repository "github.com/saifoelloh/ranger/internal/repositories"
 	service "github.com/saifoelloh/ranger/internal/services"
 	"github.com/saifoelloh/ranger/pkg/errors"
@@ -32,42 +32,30 @@ func initDB(cfg config.Config) *sqlx.DB {
 	return db
 }
 
-func initRedis(cfg config.Config) *redis.Client {
-	redisAddr := fmt.Sprintf("%s:%s", cfg.RedisHost, cfg.RedisPort)
-	if redisAddr == "" {
-		log.Println("🟡 Redis not configured")
-		return nil
-	}
-
-	client := redis.NewClient(&redis.Options{Addr: redisAddr})
-
-	if err := client.Ping(context.Background()).Err(); err != nil {
-		errors.LogAndPanic(errors.InternalServerError(
-			errors.WithScope("main"),
-			errors.WithLocation("redis.Ping"),
-			errors.WithMessage("failed to connect to Redis"),
-			errors.WithErrorCode("redis/connection-failed"),
-			errors.WithDetail(err.Error()),
-		))
-	}
-
-	log.Println("✅ Redis connected")
-	return client
-}
-
 func main() {
 	// Load config
 	cfg := config.LoadConfig()
 
 	// Initialize database
 	db := initDB(cfg)
+	rdb := redis.InitRedis(cfg)
 
 	// Initialize Repositories
 	userRepo := repository.NewUserRepository(db)
 	sessionRepo := repository.NewSessionRepository(db)
 
+	// Redis
+	limiterCfg := redis.RateLimiterConfig{
+		MaxAttempts:     3,
+		DelayPerAttempt: 10 * time.Second,
+		LockoutDuration: 10 * time.Minute,
+	}
+	redisClient := redis.NewRedisClient(rdb)
+	rateLimiterRepo := redis.NewRateLimiterRepository(redisClient, limiterCfg)
+	tokenCacheRepo := redis.NewTokenRepository(redisClient)
+
 	// Initialize Services
-	authService := service.NewAuthService(userRepo, sessionRepo, cfg.JwtSecret)
+	authService := service.NewAuthService(cfg, userRepo, sessionRepo, rateLimiterRepo, tokenCacheRepo)
 
 	// Initialize Handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -75,6 +63,22 @@ func main() {
 	// Setup Router
 	router := gin.Default()
 	router.Use(middleware.ErrorHandler())
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+	router.Use(func(c *gin.Context) {
+		if c.Request.URL.Port() != cfg.AppPort {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid host header"})
+			return
+		}
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("Content-Security-Policy", "default-src 'self'; connect-src *; font-src *; script-src-elem * 'unsafe-inline'; img-src * data:; style-src * 'unsafe-inline';")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+		c.Header("Referrer-Policy", "strict-origin")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("Permissions-Policy", "geolocation=(),midi=(),sync-xhr=(),microphone=(),camera=(),magnetometer=(),gyroscope=(),fullscreen=(self),payment=()")
+		c.Next()
+	})
 
 	// Routes
 	router.POST("/login", authHandler.Login)

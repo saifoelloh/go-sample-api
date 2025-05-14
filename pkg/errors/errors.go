@@ -101,6 +101,14 @@ func InternalServerError(opts ...Option) error {
 	return e
 }
 
+func TooManyRequests(opts ...Option) error {
+	e := &Extension{StatusCode: http.StatusTooManyRequests}
+	for _, opt := range opts {
+		opt(e)
+	}
+	return e
+}
+
 func LogAndPanic(err error) {
 	if extErr, ok := err.(*Extension); ok {
 		log.Printf("[FATAL] %s/%s - %s\n%s",

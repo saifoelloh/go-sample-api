@@ -3,35 +3,49 @@ package service
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/saifoelloh/ranger/internal/config"
 	"github.com/saifoelloh/ranger/internal/dto"
 	"github.com/saifoelloh/ranger/internal/model"
+	"github.com/saifoelloh/ranger/internal/redis"
 	repository "github.com/saifoelloh/ranger/internal/repositories"
 	"github.com/saifoelloh/ranger/internal/utils"
 	"github.com/saifoelloh/ranger/pkg/errors"
 )
 
 type AuthService struct {
-	userRepo    *repository.UserRepository
-	sessionRepo *repository.SessionRepository
-	jwtSecret   string
+	config           config.Config
+	userRepo         *repository.UserRepository
+	sessionRepo      *repository.SessionRepository
+	rateLimiterRedis *redis.RateLimiterRepository
+	tokenCacheRedis  *redis.TokenRepository
 }
 
-func NewAuthService(userRepo *repository.UserRepository, sessionRepo *repository.SessionRepository, jwtSecret string) *AuthService {
+func NewAuthService(
+	config config.Config,
+	userRepo *repository.UserRepository,
+	sessionRepo *repository.SessionRepository,
+	rateLimiterRedis *redis.RateLimiterRepository,
+	tokenCacheRedis *redis.TokenRepository,
+) *AuthService {
 	return &AuthService{
-		userRepo:    userRepo,
-		sessionRepo: sessionRepo,
-		jwtSecret:   jwtSecret,
+		userRepo:         userRepo,
+		sessionRepo:      sessionRepo,
+		config:           config,
+		rateLimiterRedis: rateLimiterRedis,
+		tokenCacheRedis:  tokenCacheRedis,
 	}
 }
 
 func (s *AuthService) Login(ctx context.Context, req dto.LoginInput) (*dto.LoginResponse, error) {
+	uniqueLabel := utils.GetUniqueLabel(req.Email, req.SSOID)
+	s.rateLimiterRedis.IsAllowed(ctx, uniqueLabel)
+
 	var user *model.User
 	var err error
 
@@ -69,16 +83,25 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginInput) (*dto.Login
 		)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password.String), []byte(*req.Password)); err != nil {
+	if req.Password == nil && req.SSOID == nil {
 		return nil, errors.Unauthorized(
 			errors.WithScope("AuthService"),
-			errors.WithLocation("Login.ComparePassword"),
-			errors.WithMessage("invalid email or password"),
-			errors.WithErrorCode("auth/invalid-credentials"),
+			errors.WithLocation("Login.NoUserFound"),
+			errors.WithMessage("no user found for given credentials"),
+			errors.WithErrorCode("auth/user-not-found"),
 		)
+	} else if req.Password != nil && *req.Password != "" {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password.String), []byte(*req.Password)); err != nil {
+			return nil, errors.Unauthorized(
+				errors.WithScope("AuthService"),
+				errors.WithLocation("Login.ComparePassword"),
+				errors.WithMessage("invalid email or password"),
+				errors.WithErrorCode("auth/invalid-credentials"),
+			)
+		}
+
 	}
 
-	fmt.Println(user.ID)
 	if err := s.sessionRepo.DeactivateSessionsByUserID(user.ID); err != nil {
 		return nil, err
 	}
@@ -112,9 +135,11 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginInput) (*dto.Login
 		},
 	})
 
-	signedToken, _ := token.SignedString([]byte(s.jwtSecret))
-
+	signedToken, _ := token.SignedString([]byte(s.config.JwtSecret))
 	refreshToken := uuid.New().String()
+
+	s.tokenCacheRedis.SetAccessToken(ctx, user.ID, signedToken, 1*time.Hour)
+	s.rateLimiterRedis.Reset(ctx, uniqueLabel)
 
 	return &dto.LoginResponse{
 		AccessToken:  signedToken,
