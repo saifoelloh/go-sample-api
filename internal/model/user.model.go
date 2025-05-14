@@ -22,6 +22,12 @@ type User struct {
 	IsDeleted             bool           `db:"is_deleted"`
 	PhotoProfile          sql.NullString `db:"photo_profile"`
 	Role                  string         `db:"role"`
-	CreatedAt             time.Time      `db:"created_at"`
-	UpdatedAt             time.Time      `db:"updated_at"`
+	SearchKeyword         sql.NullString `db:"search_keyword"`
+	SsoSignOption         sql.NullString `db:"sso_sign_option"`
+	GoogleSsoId           sql.NullString `db:"google_sso_id"`
+	AppleSsoId            sql.NullString `db:"apple_sso_id"`
+	FacebookSsoId         sql.NullString `db:"facebook_sso_id"`
+	KnowFrom              sql.NullString `db:"know_from"`
+	CreatedAt             time.Time      `db:"createdAt"`
+	UpdatedAt             time.Time      `db:"updatedAt"`
 }

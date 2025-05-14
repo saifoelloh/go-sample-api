@@ -50,12 +50,12 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginInput) (*dto.Login
 	var err error
 
 	if req.SSOID != nil && *req.SSOID != "" {
-		user, err = s.userRepo.FindBySSOID(*req.SSOID)
+		user, err = s.userRepo.FindBySSOID(*req.SSOID, *req.SSOPlatform)
 		if err != nil {
 			return nil, errors.Unauthorized(
 				errors.WithScope("AuthService"),
-				errors.WithLocation("Login.FindByEmail"),
-				errors.WithMessage("invalid email or password"),
+				errors.WithLocation("Login.FindBySSO"),
+				errors.WithMessage("invalid credentials"),
 				errors.WithErrorCode("auth/invalid-credentials"),
 			)
 		}
@@ -68,7 +68,7 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginInput) (*dto.Login
 			return nil, errors.Unauthorized(
 				errors.WithScope("AuthService"),
 				errors.WithLocation("Login.FindByEmail"),
-				errors.WithMessage("invalid email or password"),
+				errors.WithMessage("invalid credentials"),
 				errors.WithErrorCode("auth/invalid-credentials"),
 			)
 		}
@@ -99,7 +99,6 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginInput) (*dto.Login
 				errors.WithErrorCode("auth/invalid-credentials"),
 			)
 		}
-
 	}
 
 	if err := s.sessionRepo.DeactivateSessionsByUserID(user.ID); err != nil {
@@ -108,15 +107,16 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginInput) (*dto.Login
 
 	sessionID := uuid.New().String()
 	session := &model.Session{
-		ID:         sessionID,
-		UserID:     user.ID,
-		Device:     req.Device,
-		MacAddress: req.MacAddress,
-		PublicKey:  req.PublicKey,
-		Active:     true,
-		IP:         sql.NullString{String: req.IP},
-		UserAgent:  sql.NullString{String: req.UserAgent},
-		Location:   sql.NullString{String: req.UserAgent},
+		ID:            sessionID,
+		UserID:        user.ID,
+		Device:        req.Device,
+		MacAddress:    req.MacAddress,
+		PublicKey:     req.PublicKey,
+		Active:        true,
+		IP:            sql.NullString{String: req.IP, Valid: true},
+		UserAgent:     sql.NullString{String: req.UserAgent, Valid: true},
+		Location:      sql.NullString{String: req.UserAgent, Valid: true},
+		ClientVersion: req.ClientVersion,
 	}
 
 	if err := s.sessionRepo.CreateSession(session); err != nil {
@@ -132,6 +132,7 @@ func (s *AuthService) Login(ctx context.Context, req dto.LoginInput) (*dto.Login
 		SessionID: sessionID,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			Issuer:    s.config.JwtIssuer,
 		},
 	})
 

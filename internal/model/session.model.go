@@ -17,6 +17,6 @@ type Session struct {
 	IP              sql.NullString `db:"ip"`
 	UserAgent       sql.NullString `db:"user_agent"`
 	Location        sql.NullString `db:"location"`
-	CreatedAt       time.Time      `db:"created_at"`
-	UpdatedAt       time.Time      `db:"updated_at"`
+	CreatedAt       time.Time      `db:"createdAt"`
+	UpdatedAt       time.Time      `db:"updatedAt"`
 }

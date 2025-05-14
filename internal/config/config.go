@@ -25,6 +25,7 @@ type Config struct {
 
 	JwtSecret string
 	JwtExpiry time.Duration
+	JwtIssuer string
 }
 
 var (
