@@ -61,7 +61,6 @@ func main() {
 
 	// Initialize database
 	db := initDB(cfg)
-	redisClient := initRedis(cfg)
 
 	// Initialize Repositories
 	userRepo := repository.NewUserRepository(db)
