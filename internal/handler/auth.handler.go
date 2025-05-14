@@ -44,16 +44,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	resp, err := h.authService.Login(
 		c.Request.Context(),
 		dto.LoginInput{
-			Email:       req.Email,
-			Password:    req.Password,
-			SSOID:       req.SSOID,
-			SSOPlatform: req.SSOPlatform,
-			Device:      req.Device,
-			MacAddress:  req.MacAddress,
-			PublicKey:   req.PublicKey,
-			UserAgent:   string(formattedUserAgent),
-			IP:          c.ClientIP(),
-			Location:    c.GetHeader("X-Location"),
+			Email:         req.Email,
+			Password:      req.Password,
+			SSOID:         req.SSOID,
+			SSOPlatform:   req.SSOPlatform,
+			Device:        req.Device,
+			MacAddress:    req.MacAddress,
+			PublicKey:     req.PublicKey,
+			UserAgent:     string(formattedUserAgent),
+			IP:            c.ClientIP(),
+			Location:      c.GetHeader("X-Location"),
+			ClientVersion: c.GetHeader("x-client-version"),
 		},
 	)
 	if err != nil {

@@ -16,16 +16,17 @@ type LoginRequest struct {
 }
 
 type LoginInput struct {
-	Email       *string               `json:"email"`
-	Password    *string               `json:"password"`
-	SSOID       *string               `json:"sso_id"`
-	SSOPlatform *constant.SSOPlatform `json:"sso_platform"`
-	Device      string                `json:"device"`
-	MacAddress  string                `json:"mac_address"`
-	PublicKey   string                `json:"public_key"`
-	UserAgent   string                `json:"user_agent"`
-	IP          string                `json:"ip"`
-	Location    string                `json:"location"`
+	Email         *string               `json:"email"`
+	Password      *string               `json:"password"`
+	SSOID         *string               `json:"sso_id"`
+	SSOPlatform   *constant.SSOPlatform `json:"sso_platform"`
+	Device        string                `json:"device"`
+	MacAddress    string                `json:"mac_address"`
+	PublicKey     string                `json:"public_key"`
+	UserAgent     string                `json:"user_agent"`
+	IP            string                `json:"ip"`
+	Location      string                `json:"location"`
+	ClientVersion string                `json:"client_version"`
 }
 
 type LoginResponse struct {
