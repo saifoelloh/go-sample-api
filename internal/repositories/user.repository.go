@@ -49,7 +49,7 @@ func (r *UserRepository) FindBySSOID(ssoID string, ssoPlatform constant.SSOPlatf
 		query = `
 			SELECT id, first_name, last_name, email, phone_number, investor_type, sso_sign_option, google_sso_id
 			FROM "Users"
-			WHERE sso_google_sso_idid = $1 and sso_sign_option = $2`
+			WHERE google_sso_id = $1 and sso_sign_option = $2`
 	}
 	err := r.db.Get(&user, query, ssoID, ssoPlatform)
 	if err != nil {
