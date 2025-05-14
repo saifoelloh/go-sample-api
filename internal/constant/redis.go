@@ -1,0 +1,43 @@
+package constant
+
+// KeyPrefix defines Redis key namespace
+type KeyPrefix string
+
+const (
+	RequestRateLimit       KeyPrefix = "REQUEST_RATE_LIMIT"
+	PendingOtpVerification KeyPrefix = "PENDING_OTP_VERIFICATION"
+	VerifiedNumber         KeyPrefix = "VERIFIED_NUMBER"
+	RequestChangePassword  KeyPrefix = "REQUEST_CHANGE_PASSWORD"
+	ChangePassword         KeyPrefix = "CHANGE_PASSWORD"
+	RequestChangePin       KeyPrefix = "REQUEST_CHANGE_PIN"
+	OtpAction              KeyPrefix = "OTP_ACTION"
+	TokenPair              KeyPrefix = "TOKEN_PAIR"
+	PendingTransaction     KeyPrefix = "PENDING_TRANSACTION"
+	PrivyRegistration      KeyPrefix = "PRIVY_REGISTRATION"
+	PrivyDocument          KeyPrefix = "PRIVY_DOCUMENT"
+	OyTrxId                KeyPrefix = "OY_TRX_ID"
+	MockedOtp              KeyPrefix = "MOCKED_OTP"
+	SreRegistration        KeyPrefix = "SRE_REGISTRATION"
+	CheckPinValidity       KeyPrefix = "CHECK_PIN_VALIDITY"
+	CheckPasswordValidity  KeyPrefix = "CHECK_PASSWORD_VALIDITY"
+	CheckBankAccount       KeyPrefix = "CHECK_BANK_ACCOUNT"
+	IdHolidays             KeyPrefix = "ID_HOLIDAYS"
+	PortfolioData          KeyPrefix = "PORTFOLIO_DATA"
+	PortfolioQuery         KeyPrefix = "PORTFOLIO_QUERY"
+	Transaction            KeyPrefix = "TRANSACTION"
+	PaymentDetail          KeyPrefix = "PAYMENT_DETAIL"
+	XenditWebhook          KeyPrefix = "XENDIT_WEBHOOK"
+	ProjectSummary         KeyPrefix = "PROJECT_SUMMARY"
+	UtmPaymentTrack        KeyPrefix = "UTM_PAYMENT_TRACK"
+	RequestCreatePassword  KeyPrefix = "REQUEST_CREATE_PASSWORD"
+	LoyaltySre             KeyPrefix = "LOYALTY_SRE"
+	LoyaltyInvesment       KeyPrefix = "LOYALTY_INVESMENT"
+	EarlyRepayment         KeyPrefix = "EARLY_REPAYMENT"
+	LarkToken              KeyPrefix = "LARK_TOKEN"
+	XenditPaymentDetail    KeyPrefix = "XENDIT_PAYMENT_DETAIL"
+	OyPaymentDetail        KeyPrefix = "OY_PAYMENT_DETAIL"
+	DigisignOtp            KeyPrefix = "DIGISIGN_OTP"
+	VerifiedDigisignNumber KeyPrefix = "VERIFIED_DIGISIGN_NUMBER"
+	RequestAttempts        KeyPrefix = "REQUEST_ATTEMPTS"
+	RequestLastAttempt     KeyPrefix = "REQUEST_LAST_ATTEMPT"
+)
